@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>경주 기상예보</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f3f4f6;
+            color: #333;
+            padding: 20px;
+        }
+        header {
+            background-color: #4f46e5;
+            padding: 20px;
+            text-align: center;
+            color: #fff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            margin: 0;
+            font-size: 2.5em;
+        }
+        .buttons {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .buttons button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            background-color: #4f46e5;
+            color: #fff;
+            border: none;
+            border-radius: 25px;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+        }
+        .buttons button:hover {
+            background-color: #3b36b3;
+        }
+        .weather-table {
+            width: 100%;
+            max-width: 800px;
+            margin: 20px auto;
+            border-collapse: collapse;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .weather-table th, .weather-table td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        .weather-table th {
+            background-color: #4f46e5;
+            color: #fff;
+        }
+        .weather-table td {
+            background-color: #fff;
+        }
+        .date-display {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 1.2em;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>경주 기상예보</h1>
+</header>
+
+<div class="buttons">
+    <button onclick="getWeather('today')">오늘</button>
+    <button onclick="getWeather('tomorrow')">내일</button>
+    <button onclick="getWeather('dayAfterTomorrow')">모레</button>
+</div>
+
+<div class="date-display" id="date-display"></div>
+<div id="weather-container"></div>
+
+<script>
+    const latitude = 35.8428; // 경주의 위도
+    const longitude = 129.2117; // 경주의 경도
+
+    async function getWeather(day) {
+        let startDate = new Date();
+        if (day === 'tomorrow') {
+            startDate.setDate(startDate.getDate() + 1);
+        } else if (day === 'dayAfterTomorrow') {
+            startDate.setDate(startDate.getDate() + 2);
+        }
+        
+        const dateStr = startDate.toISOString().split('T')[0];
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&hourly=temperature_2m,precipitation,wind_speed_10m,wind_direction_10m,weathercode&start_date=${dateStr}&end_date=${dateStr}&timezone=Asia/Seoul`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data) {
+            displayWeather(data, day, dateStr, startDate);
+        } else {
+            alert('날씨 데이터를 가져올 수 없습니다.');
+        }
+    }
+
+    function getWindDirection(degrees) {
+        if (degrees >= 337.5 || degrees < 22.5) return '북';
+        else if (degrees >= 22.5 && degrees < 67.5) return '북동';
+        else if (degrees >= 67.5 && degrees < 112.5) return '동';
+        else if (degrees >= 112.5 && degrees < 157.5) return '남동';
+        else if (degrees >= 157.5 && degrees < 202.5) return '남';
+        else if (degrees >= 202.5 && degrees < 247.5) return '남서';
+        else if (degrees >= 247.5 && degrees < 292.5) return '서';
+        else if (degrees >= 292.5 && degrees < 337.5) return '북서';
+    }
+
+    function getWeatherDescription(code) {
+        switch (code) {
+            case 0: return '맑음';
+            case 1: case 2: case 3: return '대체로 맑음';
+            case 45: case 48: return '안개';
+            case 51: case 53: case 55: return '이슬비';
+            case 56: case 57: return '어는 이슬비';
+            case 61: case 63: case 65: return '비';
+            case 66: case 67: return '어는 비';
+            case 71: case 73: case 75: return '눈';
+            case 77: return '눈날림';
+            case 80: case 81: case 82: return '소나기';
+            case 85: case 86: return '눈 소나기';
+            case 95: return '천둥번개';
+            case 96: case 99: return '우박과 천둥번개';
+            default: return '알 수 없음';
+        }
+    }
+
+    function formatTime(timeStr) {
+        const [hour, minute] = timeStr.split(':');
+        const period = hour >= 12 ? '오후' : '오전';
+        const hour12 = hour % 12 || 12; // 12-hour format, with 12 replacing 0
+        return `${period} ${hour12}:${minute}`;
+    }
+
+    function displayWeather(data, day, dateStr, startDate) {
+        const weatherContainer = document.getElementById('weather-container');
+        const dateDisplay = document.getElementById('date-display');
+        
+        const month = startDate.getMonth() + 1; // 월은 0부터 시작하므로 1을 더함
+        const date = startDate.getDate();
+        
+        dateDisplay.innerText = `${month}월 ${date}일`;
+        
+        let content = `
+            <table class="weather-table">
+                <thead>
+                    <tr>
+                        <th>시간</th>
+                        <th>날씨</th>
+                        <th>온도 (°C)</th>
+                        <th>강수량 (mm)</th>
+                        <th>풍속 (m/s)</th>
+                        <th>풍향</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        for (let i = 0; i < data.hourly.time.length; i++) {
+            const time = formatTime(data.hourly.time[i].split('T')[1]);
+            const temp = data.hourly.temperature_2m[i];
+            const precipitation = data.hourly.precipitation[i];
+            const windSpeed = data.hourly.wind_speed_10m[i];
+            const windDirection = getWindDirection(data.hourly.wind_direction_10m[i]);
+            const weatherDescription = getWeatherDescription(data.hourly.weathercode[i]);
+
+            content += `
+                <tr>
+                    <td>${time}</td>
+                    <td>${weatherDescription}</td>
+                    <td>${temp}</td>
+                    <td>${precipitation}</td>
+                    <td>${windSpeed}</td>
+                    <td>${windDirection}</td>
+                </tr>
+            `;
+        }
+
+        content += `
+                </tbody>
+            </table>
+        `;
+
+        weatherContainer.innerHTML = content;
+    }
+
+    // 첫 로드 시 오늘 날씨 표시
+    getWeather('today');
+
+    // 15분마다 업데이트
+    setInterval(() => {
+        const activeDay = document.querySelector('.buttons button[active]').innerText.toLowerCase();
+        getWeather(activeDay);
+    }, 900000); // 900,000ms = 15분
+</script>
+
+</body>
+</html>
