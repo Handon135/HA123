@@ -83,8 +83,8 @@
 <div id="weather-container"></div>
 
 <script>
-    const latitude = 35.8428; // 경주의 위도
-    const longitude = 129.2117; // 경주의 경도
+    const latitude = 35.86; // 경주의 위도
+    const longitude = 129.23; // 경주의 경도
 
     async function getWeather(day) {
         let startDate = new Date();
@@ -203,7 +203,7 @@
     setInterval(() => {
         const activeDay = document.querySelector('.buttons button[active]').innerText.toLowerCase();
         getWeather(activeDay);
-    }, 900000); // 900,000ms = 15분
+    }, 9); // 900,000ms = 15분
 </script>
 
 </body>
